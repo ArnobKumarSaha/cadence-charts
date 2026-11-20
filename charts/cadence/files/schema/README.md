@@ -26,6 +26,9 @@ files/schema/
 │   ├── wait-elasticsearch.sh        # Wait for Elasticsearch to be ready
 │   ├── wait-mysql.sh                # Wait for MySQL to be ready
 │   └── wait-postgres.sh             # Wait for PostgreSQL to be ready
+├── mark-versioned-*.sh                # Mark already-versioned SQL databases
+│   ├── mark-versioned-mysql.sh      # Mark versioned MySQL databases
+│   └── mark-versioned-postgres.sh   # Mark versioned PostgreSQL databases
 ├── wait-schema-*.sh                 # Schema version validation
 │   ├── wait-schema-cassandra.sh     # Wait for Cassandra schema version
 │   ├── wait-schema-mysql.sh         # Wait for MySQL schema version
@@ -41,7 +44,7 @@ files/schema/
 
 ## Re-running the schema Job (SQL)
 
-`cadence-sql-tool setup-schema` resets `schema_version` to `0.0` every time it runs. For PostgreSQL and MySQL, `wait-*.sh` writes `/schema-state/<db>.versioned` for each database that already has a `schema_version` row, and `setup-*.sh` skips `setup-schema` for those databases. This keeps a re-run of the Job (e.g. a GitOps tool re-creating it after `ttlSecondsAfterFinished`) from resetting a migrated database.
+`cadence-sql-tool setup-schema` resets `schema_version` to `0.0` every time it runs. For PostgreSQL and MySQL, the `check-schema-version` init container runs `mark-versioned-*.sh`, which writes `$SCHEMA_STATE_DIR/<db>.versioned` (default `/tmp/schema-state`) for each database that already has a `schema_version` row, and `setup-*.sh` skips `setup-schema` for those databases. This keeps a re-run of the Job (e.g. a GitOps tool re-creating it after `ttlSecondsAfterFinished`, or a Helm hook on every upgrade) from resetting a migrated database. When `setup-*.sh` is run on its own without a marker, `setup-schema` runs as before.
 
 ## Development
 

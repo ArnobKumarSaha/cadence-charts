@@ -30,16 +30,19 @@ build_mysql_cmd() {
   echo "$_cmd"
 }
 
+SCHEMA_STATE_DIR="${SCHEMA_STATE_DIR:-/tmp/schema-state}"
+mkdir -p "$SCHEMA_STATE_DIR"
+
 # Create main database
 echo "Creating main database: $DB_NAME"
 $(build_mysql_cmd) create-database --db "$DB_NAME" || echo "Database $DB_NAME already exists"
 
-if [ -f "/schema-state/$DB_NAME.versioned" ]; then
+if [ -f "$SCHEMA_STATE_DIR/$DB_NAME.versioned" ]; then
   echo "Skipping main schema setup (already versioned)"
 else
   echo "Setting up main schema version 0.0"
   $(build_mysql_cmd) --db "$DB_NAME" setup-schema -v 0.0
-  touch "/schema-state/$DB_NAME.versioned"
+  touch "$SCHEMA_STATE_DIR/$DB_NAME.versioned"
 fi
 
 echo "Updating main schema to latest version"
@@ -50,12 +53,12 @@ if [ "$ES_ENABLED" = "false" ]; then
   echo "Creating visibility database: $DB_VISIBILITY_NAME"
   $(build_mysql_cmd) create-database --db "$DB_VISIBILITY_NAME" || echo "Database $DB_VISIBILITY_NAME already exists"
 
-  if [ -f "/schema-state/$DB_VISIBILITY_NAME.versioned" ]; then
+  if [ -f "$SCHEMA_STATE_DIR/$DB_VISIBILITY_NAME.versioned" ]; then
     echo "Skipping visibility schema setup (already versioned)"
   else
     echo "Setting up visibility schema version 0.0"
     $(build_mysql_cmd) --db "$DB_VISIBILITY_NAME" setup-schema -v 0.0
-    touch "/schema-state/$DB_VISIBILITY_NAME.versioned"
+    touch "$SCHEMA_STATE_DIR/$DB_VISIBILITY_NAME.versioned"
   fi
 
   echo "Updating visibility schema to latest version"

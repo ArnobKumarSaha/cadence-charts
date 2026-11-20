@@ -329,3 +329,50 @@ Cadence GRPC Peers endpoint
 {{- define "cadence.grpcPeers" -}}
 {{ include "cadence.fullname" . }}-frontend.{{ .Release.Namespace }}.svc.cluster.local:{{ .Values.frontend.grpcPort | default 7833 }}
 {{- end }}
+
+{{- define "cadence.schema.sqlClientEnv" -}}
+{{- $dbDriver := .Values.config.persistence.database.driver -}}
+{{- $sql := .Values.config.persistence.database.sql -}}
+{{- $pwdKey := ternary "POSTGRES_PWD" "MYSQL_PWD" (eq $dbDriver "postgres") -}}
+{{- $defaultPort := ternary 5432 3306 (eq $dbDriver "postgres") -}}
+- name: ES_ENABLED
+  value: {{ .Values.config.persistence.elasticsearch.enabled | quote }}
+- name: DB_HOST
+  value: {{ include "cadence.sqlHost" . | quote }}
+- name: DB_PORT
+  value: {{ (index .Values.config.persistence.database $dbDriver).port | default $sql.port | default $defaultPort | quote }}
+- name: DB_NAME
+  value: {{ $sql.dbname | quote }}
+- name: DB_VISIBILITY_NAME
+  value: {{ $sql.visibilityDbname | quote }}
+- name: DB_USER
+  value: {{ $sql.user | quote }}
+{{- if $sql.password }}
+- name: {{ $pwdKey }}
+  valueFrom:
+    secretKeyRef:
+      name: {{ include "cadence.fullname" . }}-frontend-secrets
+      key: {{ $pwdKey }}
+{{- end }}
+- name: TLS_ENABLED
+  value: {{ $sql.tls.enabled | quote }}
+{{- if $sql.tls.enabled }}
+- name: SSL_MODE
+  value: {{ $sql.tls.sslMode | default "require" | quote }}
+{{- if $sql.tls.caFile }}
+- name: SSL_CERTFILE
+  value: {{ $sql.tls.caFile | quote }}
+{{- else if $sql.tls.caFiles }}
+- name: SSL_CERTFILE
+  value: {{ index $sql.tls.caFiles 0 | quote }}
+{{- end }}
+{{- if $sql.tls.certFile }}
+- name: SSL_CLIENT_CERT
+  value: {{ $sql.tls.certFile | quote }}
+{{- end }}
+{{- if $sql.tls.keyFile }}
+- name: SSL_CLIENT_KEY
+  value: {{ $sql.tls.keyFile | quote }}
+{{- end }}
+{{- end }}
+{{- end }}

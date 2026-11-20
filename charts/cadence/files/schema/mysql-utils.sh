@@ -74,6 +74,8 @@ wait_mysql_ready() {
 # that are already versioned and let the schema Job skip it for them.
 mark_if_versioned() {
   _db=$1
+  _stateDir="${SCHEMA_STATE_DIR:-/tmp/schema-state}"
+  mkdir -p "$_stateDir"
 
   _hasTable=$($(build_mysql_cmd) -N -s -e "SELECT 1 FROM information_schema.tables WHERE table_schema = '$_db' AND table_name = 'schema_version'")
   if [ "$_hasTable" != "1" ]; then
@@ -84,6 +86,6 @@ mark_if_versioned() {
   _hasRow=$($(build_mysql_cmd) -N -s -e "SELECT 1 FROM \`$_db\`.schema_version WHERE db_name = '$_db'")
   if [ "$_hasRow" = "1" ]; then
     echo "Database $_db is already versioned"
-    touch "/schema-state/$_db.versioned"
+    touch "$_stateDir/$_db.versioned"
   fi
 }
